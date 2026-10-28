@@ -80,9 +80,7 @@ if command -v ipsec >/dev/null && ipsec --version 2>/dev/null | grep -qi libresw
     sudo cp /etc/ipsec.conf "/etc/ipsec.conf.bak.$(date +%s)"
     sudo sed -i '/^\s*ikev1-policy\s*=/d; /^config setup/a\        ikev1-policy=accept' /etc/ipsec.conf
   fi
-  echo "==> Enabling IPsec service"
-  sudo systemctl enable --now ipsec
-  sudo systemctl restart ipsec
+  # No need to enable/restart ipsec: the L2TP plugin restarts it on every connect.
 fi
 
 echo "==> Loading L2TP kernel modules"
@@ -95,8 +93,8 @@ sleep 2
 # --- Questions ---------------------------------------------------------------
 cat <<'EOF'
 
-VUT VPN connection:
-    VUT ID          VUT login (without @vut.cz or @vutbr.cz)
+==> VUT VPN connection
+    VUT ID          your VUT login (without @vut.cz or @vutbr.cz)
     VUT PIN         https://www.vut.cz/intra/vut-pin
     Pre-shared key  https://doc.vut.cz/cs/WifiSiteTelefony/VPN
 
