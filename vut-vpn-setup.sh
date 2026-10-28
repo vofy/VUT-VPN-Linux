@@ -93,13 +93,21 @@ sudo systemctl restart NetworkManager
 sleep 2
 
 # --- Questions ---------------------------------------------------------------
+cat <<'EOF'
+
+==> VUT VPN connection
+    VUT ID          your VUT login (without @vut.cz or @vutbr.cz)
+    VUT PIN         https://www.vut.cz/intra/vut-pin
+    Pre-shared key  https://doc.vut.cz/cs/WifiSiteTelefony/VPN
+
+EOF
+
 read -rp "VUT ID: " VUT_LOGIN </dev/tty
 [[ -n "$VUT_LOGIN" ]] || { echo "VUT ID is required." >&2; exit 1; }
 
 read -rsp "VUT PIN: " VUT_PIN </dev/tty; echo
 [[ -n "$VUT_PIN" ]] || { echo "VUT PIN is required." >&2; exit 1; }
 
-echo "Pre-shared key: see https://doc.vut.cz/cs/WifiSiteTelefony/VPN"
 read -rsp "Pre-shared key: " VUT_PSK </dev/tty; echo
 [[ -n "$VUT_PSK" ]] || { echo "Pre-shared key is required." >&2; exit 1; }
 
