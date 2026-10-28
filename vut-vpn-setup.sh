@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Set up VUT VPN (L2TP/IPsec) for NetworkManager:
 #   - installs the L2TP plugin (Fedora, Debian/Ubuntu, Arch)
-#   - allows IKEv1 in libreswan, enables IPsec
+#   - allows IKEv1 in libreswan
 #   - loads the L2TP kernel modules (now and on boot)
 #   - creates the VUT connection with nmcli
 # Tested on Fedora Workstation 44 with GNOME.
