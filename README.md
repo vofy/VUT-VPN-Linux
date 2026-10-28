@@ -1,98 +1,100 @@
 # VUT VPN on Linux
 
 > [!NOTE]
-> Tested on Fedora Workstation 44 with GNOME 50.6.
+> Tested on Fedora Workstation 44 with GNOME 50.6. Other distributions are untested.
 
-There are two ways to set it up:
-
-- **A. Script.** Does everything in one step and also works on KDE Plasma, Debian/Ubuntu and Arch.
-- **B. Manual + GNOME GUI.** Steps 1–5 below.
-
-## A. Script
-
-```bash
-git clone https://github.com/<user>/vut-vpn-linux.git
-cd vut-vpn-linux
-chmod +x vut-vpn-nmconnection.sh
-./vut-vpn-nmconnection.sh
-```
-
-Run it as your normal user (it calls `sudo` itself). It installs the L2TP plugin, allows IKEv1, enables IPsec and the L2TP kernel modules, then asks for:
+You will need:
 
 - **VUT ID**: your VUT login (without @vut.cz or @vutbr.cz)
 - **VUT PIN**: [vut.cz/intra/vut-pin](https://www.vut.cz/intra/vut-pin)
 - **Pre-shared key**: from the [VUT VPN wiki](https://doc.vut.cz/cs/WifiSiteTelefony/VPN)
 
-It installs the connection to `/etc/NetworkManager/system-connections/VUT.nmconnection`, readable by root only and visible only to your user. Then go to [step 5](#5-connect).
+There are three ways to set it up:
 
-To remove the connection later, if desired:
+1. [Script](#1-script): does everything, including the connection (nmcli).
+2. [GNOME GUI](#2-gnome-gui): import a connection file in GNOME Settings.
+3. [Manual](#3-manual): packages, IPsec, kernel modules and an nmcli command.
 
-```bash
-./vut-vpn-nmconnection.sh --remove
-```
-
-This removes only the VUT connection. Packages, `/etc/ipsec.conf` and kernel module settings stay as they are.
-
-### Supported distributions
-
-The script detects the distribution from `/etc/os-release`, including derivatives through `ID_LIKE`.
-
-| Distribution | Package manager | IPsec backend | Status |
-|---|---|---|---|
-| Fedora, RHEL, AlmaLinux, Rocky Linux | `dnf` | libreswan | ✅ Tested on Fedora Workstation 44; others untested, RHEL-based need [EPEL](https://docs.fedoraproject.org/en-US/epel/) |
-| Debian, Ubuntu, Linux Mint, Pop!_OS | `apt` | libreswan | ⚠️ Untested |
-| Arch Linux, Manjaro, EndeavourOS | `pacman` | strongswan | ⚠️ Untested |
-
-Any other distribution stops with an error. Use the manual steps (B) there and adapt the package names.
-
-## B. Manual + GNOME GUI
-
-## 1. Install the L2TP plugin
+## 1. Script
 
 ```bash
-sudo dnf install NetworkManager-l2tp NetworkManager-l2tp-gnome
+curl -fsSL https://raw.githubusercontent.com/vofy/VUT-VPN-Linux/main/vut-vpn-setup.sh | bash
 ```
 
-## 2. Allow IKEv1
+Use `bash`, not `sh`. The script installs the packages, configures IPsec and the kernel modules, then asks for your VUT ID, VUT PIN and pre-shared key and creates the connection with nmcli.
 
-Edit `/etc/ipsec.conf` and add `ikev1-policy=accept` under `config setup`:
+Then turn on **VUT** in network settings, or run `nmcli connection up VUT`.
 
+To remove the connection (packages and system settings stay):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vofy/VUT-VPN-Linux/main/vut-vpn-setup.sh | bash -s -- --remove
 ```
-config setup
-        ikev1-policy=accept
+
+## 2. GNOME GUI
+
+First do the [packages](#packages) (including the GNOME package), [IPsec](#ipsec-libreswan-5) and [kernel modules](#kernel-modules) steps from the manual setup.
+
+Then download [`VUT.conf`](VUT.conf) with your VUT ID filled in:
+
+```bash
+read -rp "VUT ID: " VUT_ID && curl -fsSL https://raw.githubusercontent.com/vofy/VUT-VPN-Linux/main/VUT.conf | sed "s/^user=.*/user=$VUT_ID/" > VUT.conf
 ```
 
-Then enable IPsec and restart it so the new setting is loaded:
+Go to **Settings → Network → VPN → + → Import from file…** and select `VUT.conf`. On the first connect, enter your VUT PIN and the pre-shared key.
+
+## 3. Manual
+
+### Packages
+
+| Distribution | Command |
+|---|---|
+| Fedora, RHEL¹ | `sudo dnf install NetworkManager-l2tp kernel-modules-extra` |
+| Debian, Ubuntu² | `sudo apt install network-manager-l2tp libreswan` |
+| Arch | `sudo pacman -S networkmanager-l2tp strongswan` |
+
+¹ RHEL, AlmaLinux and Rocky need [EPEL](https://docs.fedoraproject.org/en-US/epel/).
+² On Ubuntu also install `linux-modules-extra-$(uname -r)`.
+
+Optional GUI packages for editing the connection in network settings:
+
+| Distribution | GNOME | KDE Plasma |
+|---|---|---|
+| Fedora, RHEL | `NetworkManager-l2tp-gnome` | `plasma-nm-l2tp` |
+| Debian, Ubuntu | `network-manager-l2tp-gnome` | `plasma-nm` |
+| Arch | included in `networkmanager-l2tp` | `plasma-nm` |
+
+### IPsec (libreswan 5+)
+
+Add `ikev1-policy=accept` under `config setup` in `/etc/ipsec.conf`, then:
 
 ```bash
 sudo systemctl enable --now ipsec
 sudo systemctl restart ipsec
-systemctl is-enabled ipsec && systemctl is-active ipsec   # should print "enabled" and "active"
 ```
 
-## 3. Enable the L2TP kernel modules
+### Kernel modules
 
 ```bash
 sudo modprobe -a l2tp_netlink l2tp_ppp
-echo -e "l2tp_netlink\nl2tp_ppp" | sudo tee /etc/modules-load.d/l2tp.conf
+printf 'l2tp_netlink\nl2tp_ppp\n' | sudo tee /etc/modules-load.d/l2tp.conf
 sudo systemctl restart NetworkManager
 ```
 
-## 4. Import VUT.conf
+### Connection
 
-1. In `VUT.conf` from this repository, replace `<vut_id>` with your VUT login (without @vut.cz or @vutbr.cz).
-2. Open **Settings → Network**, click **+** next to **VPN**, then choose **Import from file…** and select `VUT.conf`.
-3. Click **Add**. Nothing else needs to be filled in.
+```bash
+read -rp  "VUT ID: " VUT_ID
+read -rsp "VUT PIN: " VUT_PIN; echo
+read -rsp "Pre-shared key: " VUT_PSK; echo
 
-## 5. Connect
+nmcli connection add type vpn con-name VUT vpn-type l2tp \
+  connection.autoconnect no \
+  connection.permissions "user:$USER" \
+  vpn.data "gateway=vpn.vutbr.cz, user=$VUT_ID, user-auth-type=password, password-flags=0, machine-auth-type=psk, ipsec-enabled=yes, ipsec-psk-flags=0, refuse-eap=yes, refuse-pap=yes, refuse-chap=yes, refuse-mschap=yes" \
+  vpn.secrets "password=$VUT_PIN, ipsec-psk=$VUT_PSK"
 
-Turn on the **VUT** VPN in **Settings → Network** or in the top-bar quick settings menu.
+unset VUT_PIN VUT_PSK
+```
 
-If you used the GUI setup (B), the first connect asks for:
-
-| Field | Value |
-|---|---|
-| **Password** | your VUT PIN ([vut.cz/intra/vut-pin](https://www.vut.cz/intra/vut-pin)), not your intraportal password |
-| **Pre-shared key** | the shared secret from the [VUT VPN wiki](https://doc.vut.cz/cs/WifiSiteTelefony/VPN) |
-
-The script (A) already stores both, so it connects without asking.
+Values containing a comma don't work with nmcli. In that case, use the GNOME GUI method.
