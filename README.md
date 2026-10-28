@@ -25,7 +25,7 @@ Run it as your normal user (it calls `sudo` itself). It installs the L2TP plugin
 
 It installs the connection to `/etc/NetworkManager/system-connections/VUT.nmconnection`, readable by root only and visible only to your user. Then go to [step 5](#5-connect).
 
-To remove the connection later:
+To remove the connection later, if desired:
 
 ```bash
 ./vut-vpn-nmconnection.sh --remove
