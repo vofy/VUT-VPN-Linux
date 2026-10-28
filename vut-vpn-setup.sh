@@ -95,8 +95,8 @@ sleep 2
 # --- Questions ---------------------------------------------------------------
 cat <<'EOF'
 
-==> VUT VPN connection
-    VUT ID          your VUT login (without @vut.cz or @vutbr.cz)
+VUT VPN connection:
+    VUT ID          VUT login (without @vut.cz or @vutbr.cz)
     VUT PIN         https://www.vut.cz/intra/vut-pin
     Pre-shared key  https://doc.vut.cz/cs/WifiSiteTelefony/VPN
 
