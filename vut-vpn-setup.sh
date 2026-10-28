@@ -3,24 +3,28 @@
 #   - installs the L2TP plugin (Fedora, Debian/Ubuntu, Arch)
 #   - allows IKEv1 in libreswan, enables IPsec
 #   - loads the L2TP kernel modules (now and on boot)
-#   - generates and installs the VUT connection
+#   - creates the VUT connection with nmcli
 # Tested on Fedora Workstation 44 with GNOME.
 #
 # Usage (as your normal user; sudo is called when needed):
-#   ./vut-vpn-nmconnection.sh            # set up and install the connection
-#   ./vut-vpn-nmconnection.sh --remove   # remove the VUT connection
+#   ./vut-vpn-setup.sh            # set up and install the connection
+#   ./vut-vpn-setup.sh --remove   # remove the VUT connection
+# or without cloning:
+#   curl -fsSL https://raw.githubusercontent.com/vofy/VUT-VPN-Linux/main/vut-vpn-setup.sh | bash
 #
-# Asks for VUT ID, VUT PIN and pre-shared key, then installs
-# /etc/NetworkManager/system-connections/VUT.nmconnection
+# Asks for VUT ID, VUT PIN and pre-shared key, then creates the
+# connection with `nmcli connection add`.
 #
 # Pre-shared key: https://doc.vut.cz/cs/WifiSiteTelefony/VPN
 # VUT PIN:        https://www.vut.cz/intra/vut-pin
 
 set -euo pipefail
 
+# Wrapped in main() so a partially downloaded script (curl | bash) never runs.
+main() {
+
 CON_NAME="VUT"
 GATEWAY="vpn.vutbr.cz"
-TARGET_DIR="/etc/NetworkManager/system-connections"
 
 case "${1:-}" in
   "") ;;
@@ -30,26 +34,16 @@ case "${1:-}" in
     else
       echo "Connection '$CON_NAME' not found."
     fi
-    sudo rm -f "$TARGET_DIR/$CON_NAME.nmconnection"
-    sudo nmcli connection reload
     echo "Removed. Installed packages, /etc/ipsec.conf and kernel module settings were left unchanged."
     exit 0
     ;;
-  -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+  -h|--help)
+    echo "Usage: vut-vpn-setup.sh [--remove]"
+    echo "  (no option)  install packages, configure IPsec and create the VUT connection"
+    echo "  --remove     remove the VUT connection"
+    exit 0 ;;
   *) echo "Unknown option: $1 (use --help)" >&2; exit 1 ;;
 esac
-
-# Escape a value for a GKeyFile (backslash and leading/trailing spaces).
-kf_escape() {
-  local v="${1//\\/\\\\}"
-  [[ "$v" == " "* ]] && v="\\s${v:1}"
-  printf '%s' "$v"
-}
-
-gen_uuid() {
-  if command -v uuidgen >/dev/null; then uuidgen
-  else cat /proc/sys/kernel/random/uuid; fi
-}
 
 # --- System setup: packages, IPsec, kernel modules -----------------------------
 # Only Fedora is tested; Debian/Ubuntu and Arch are best effort.
@@ -99,65 +93,40 @@ sudo systemctl restart NetworkManager
 sleep 2
 
 # --- Questions ---------------------------------------------------------------
-read -rp "VUT ID: " VUT_LOGIN
+read -rp "VUT ID: " VUT_LOGIN </dev/tty
 [[ -n "$VUT_LOGIN" ]] || { echo "VUT ID is required." >&2; exit 1; }
 
-read -rsp "VUT PIN: " VUT_PIN; echo
+read -rsp "VUT PIN: " VUT_PIN </dev/tty; echo
 [[ -n "$VUT_PIN" ]] || { echo "VUT PIN is required." >&2; exit 1; }
 
 echo "Pre-shared key: see https://doc.vut.cz/cs/WifiSiteTelefony/VPN"
-read -rsp "Pre-shared key: " VUT_PSK; echo
+read -rsp "Pre-shared key: " VUT_PSK </dev/tty; echo
 [[ -n "$VUT_PSK" ]] || { echo "Pre-shared key is required." >&2; exit 1; }
+
+# nmcli separates vpn.data/vpn.secrets items with ", "
+for v in "$VUT_LOGIN" "$VUT_PIN" "$VUT_PSK"; do
+  [[ "$v" != *,* ]] || { echo "Values must not contain a comma. Use the GNOME GUI method instead." >&2; exit 1; }
+done
 
 # Connection is visible only to the user running the script.
 OWNER="${SUDO_USER:-$(id -un)}"
 
-# --- Generate file -------------------------------------------------------------
-TMP="$(mktemp)"
-trap 'rm -f "$TMP"' EXIT
-chmod 600 "$TMP"
-
-{
-  echo "[connection]"
-  echo "id=$CON_NAME"
-  echo "uuid=$(gen_uuid)"
-  echo "type=vpn"
-  echo "autoconnect=false"
-  echo "permissions=user:$OWNER;"
-  echo
-  echo "[vpn]"
-  echo "service-type=org.freedesktop.NetworkManager.l2tp"
-  echo "gateway=$GATEWAY"
-  echo "user-auth-type=password"
-  echo "user=$(kf_escape "$VUT_LOGIN")"
-  echo "password-flags=0"
-  echo "machine-auth-type=psk"
-  echo "ipsec-enabled=yes"
-  echo "ipsec-psk-flags=0"
-  echo "refuse-eap=yes"
-  echo "refuse-pap=yes"
-  echo "refuse-chap=yes"
-  echo "refuse-mschap=yes"
-  echo
-  echo "[vpn-secrets]"
-  echo "ipsec-psk=$(kf_escape "$VUT_PSK")"
-  echo "password=$(kf_escape "$VUT_PIN")"
-  echo
-  echo "[ipv4]"
-  echo "method=auto"
-  echo
-  echo "[ipv6]"
-  echo "method=auto"
-} > "$TMP"
-
-# --- Install -------------------------------------------------------------------
+# --- Create connection ---------------------------------------------------------
 if nmcli -t -f NAME connection show | grep -qx "$CON_NAME"; then
-  read -rp "Connection '$CON_NAME' already exists. Replace it? [y/N]: " REPLACE
+  read -rp "Connection '$CON_NAME' already exists. Replace it? [y/N]: " REPLACE </dev/tty
   [[ "$REPLACE" =~ ^[Yy] ]] || { echo "Aborted."; exit 1; }
   sudo nmcli connection delete "$CON_NAME" >/dev/null
 fi
 
-sudo install -m 600 -o root -g root "$TMP" "$TARGET_DIR/$CON_NAME.nmconnection"
-sudo nmcli connection reload
-echo "Installed $TARGET_DIR/$CON_NAME.nmconnection"
+sudo nmcli connection add type vpn con-name "$CON_NAME" vpn-type l2tp \
+  connection.autoconnect no \
+  connection.permissions "user:$OWNER" \
+  vpn.data "gateway=$GATEWAY, user=$VUT_LOGIN, user-auth-type=password, password-flags=0, machine-auth-type=psk, ipsec-enabled=yes, ipsec-psk-flags=0, refuse-eap=yes, refuse-pap=yes, refuse-chap=yes, refuse-mschap=yes" \
+  vpn.secrets "password=$VUT_PIN, ipsec-psk=$VUT_PSK" >/dev/null
+
+unset VUT_PIN VUT_PSK
+echo "Connection '$CON_NAME' created."
 echo "Connect with: nmcli connection up $CON_NAME  (or from GNOME quick settings)"
+}
+
+main "$@"
