@@ -1,4 +1,4 @@
-# VUT VPN on Linux
+vut# VUT VPN on Linux
 
 > [!NOTE]
 > Tested on Fedora Workstation 44 with GNOME 50.6.
@@ -12,7 +12,7 @@ There are two ways to set it up:
 
 ```bash
 git clone https://github.com/vofy/VUT-VPN-Linux.git
-cd vut-vpn-linux
+cd VUT-VPN-Linux
 chmod +x vut-vpn-nmconnection.sh
 ./vut-vpn-nmconnection.sh
 ```
