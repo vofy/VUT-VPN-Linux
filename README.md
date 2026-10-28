@@ -1,4 +1,4 @@
-vut# VUT VPN on Linux
+# VUT VPN on Linux
 
 > [!NOTE]
 > Tested on Fedora Workstation 44 with GNOME 50.6.
@@ -11,8 +11,8 @@ There are two ways to set it up:
 ## A. Script
 
 ```bash
-git clone https://github.com/vofy/VUT-VPN-Linux.git
-cd VUT-VPN-Linux
+git clone https://github.com/<user>/vut-vpn-linux.git
+cd vut-vpn-linux
 chmod +x vut-vpn-nmconnection.sh
 ./vut-vpn-nmconnection.sh
 ```
@@ -24,6 +24,14 @@ Run it as your normal user (it calls `sudo` itself). It installs the L2TP plugin
 - **Pre-shared key**: from the [VUT VPN wiki](https://doc.vut.cz/cs/WifiSiteTelefony/VPN)
 
 It installs the connection to `/etc/NetworkManager/system-connections/VUT.nmconnection`, readable by root only and visible only to your user. Then go to [step 5](#5-connect).
+
+To remove the connection later:
+
+```bash
+./vut-vpn-nmconnection.sh --remove
+```
+
+This removes only the VUT connection. Packages, `/etc/ipsec.conf` and kernel module settings stay as they are.
 
 ### Supported distributions
 
