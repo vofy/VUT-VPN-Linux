@@ -11,7 +11,7 @@ There are two ways to set it up:
 ## A. Script
 
 ```bash
-git clone https://github.com/<user>/vut-vpn-linux.git
+git clone https://github.com/vofy/VUT-VPN-Linux.git
 cd vut-vpn-linux
 chmod +x vut-vpn-nmconnection.sh
 ./vut-vpn-nmconnection.sh
