@@ -25,6 +25,18 @@ Run it as your normal user (it calls `sudo` itself). It installs the L2TP plugin
 
 It installs the connection to `/etc/NetworkManager/system-connections/VUT.nmconnection`, readable by root only and visible only to your user. Then go to [step 5](#5-connect).
 
+### Supported distributions
+
+The script detects the distribution from `/etc/os-release`, including derivatives through `ID_LIKE`.
+
+| Distribution | Package manager | IPsec backend | Status |
+|---|---|---|---|
+| Fedora, RHEL, AlmaLinux, Rocky Linux | `dnf` | libreswan | ✅ Tested on Fedora Workstation 44; others untested, RHEL-based need [EPEL](https://docs.fedoraproject.org/en-US/epel/) |
+| Debian, Ubuntu, Linux Mint, Pop!_OS | `apt` | libreswan | ⚠️ Untested |
+| Arch Linux, Manjaro, EndeavourOS | `pacman` | strongswan | ⚠️ Untested |
+
+Any other distribution stops with an error. Use the manual steps (B) there and adapt the package names.
+
 ## B. Manual + GNOME GUI
 
 ## 1. Install the L2TP plugin
@@ -60,20 +72,19 @@ sudo systemctl restart NetworkManager
 
 ## 4. Import VUT.conf
 
-1. Open **Settings → Network**, click **+** next to **VPN**, then choose **Import from file…** and select `VUT.conf` from this repository.
-2. The connection dialog opens on the **Identity** tab. Fill in:
-
-   | Field | Value |
-   |---|---|
-   | **User authentication → User name** | your VUT login |
-   | **User authentication → Password** | your VUT PIN ([vut.cz/intra/vut-pin](https://www.vut.cz/intra/vut-pin)), not your intraportal password |
-   | **Machine authentication → Pre-shared key** | the shared secret from the [VUT VPN wiki](https://doc.vut.cz/cs/WifiSiteTelefony/VPN) |
-
-   - The icon at the right of the **Password** field controls how the PIN is stored. Choose **Store the password only for this user** to save it, or **Ask for this password every time**.
-   - On older plugin versions, the pre-shared key field is under the **IPsec Settings…** button instead.
-3. Optional: to keep the connection to your user only, untick **Make available to other users** on the **Details** tab.
-4. Click **Add**.
+1. In `VUT.conf` from this repository, replace `<vut_id>` with your VUT login (without @vut.cz or @vutbr.cz).
+2. Open **Settings → Network**, click **+** next to **VPN**, then choose **Import from file…** and select `VUT.conf`.
+3. Click **Add**. Nothing else needs to be filled in.
 
 ## 5. Connect
 
-Turn on the **VUT** VPN in **Settings → Network** or in the top-bar quick settings menu. If you chose **Ask for this password every time**, enter your VUT PIN when prompted.
+Turn on the **VUT** VPN in **Settings → Network** or in the top-bar quick settings menu.
+
+If you used the GUI setup (B), the first connect asks for:
+
+| Field | Value |
+|---|---|
+| **Password** | your VUT PIN ([vut.cz/intra/vut-pin](https://www.vut.cz/intra/vut-pin)), not your intraportal password |
+| **Pre-shared key** | the shared secret from the [VUT VPN wiki](https://doc.vut.cz/cs/WifiSiteTelefony/VPN) |
+
+The script (A) already stores both, so it connects without asking.
