@@ -66,12 +66,7 @@ Optional GUI packages for editing the connection in network settings:
 
 ### IPsec (libreswan 5+)
 
-Add `ikev1-policy=accept` under `config setup` in `/etc/ipsec.conf`, then:
-
-```bash
-sudo systemctl enable --now ipsec
-sudo systemctl restart ipsec
-```
+Add `ikev1-policy=accept` under `config setup` in `/etc/ipsec.conf`. The IPsec service doesn't need to be enabled; the L2TP plugin restarts it on every connect.
 
 ### Kernel modules
 
