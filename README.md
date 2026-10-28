@@ -38,7 +38,7 @@ First do the [packages](#packages) (including the GNOME package), [IPsec](#ipsec
 Then download [`VUT.conf`](VUT.conf) with your VUT ID filled in:
 
 ```bash
-read -rp "VUT ID: " VUT_ID && curl -fsSL https://raw.githubusercontent.com/vofy/VUT-VPN-Linux/main/VUT.conf | sed "s/^user=.*/user=$VUT_ID/" > VUT.conf
+read -rp "VUT ID: " VUT_ID && curl -fsSL https://raw.githubusercontent.com/vofy/VUT-VPN-Linux/main/VUT.conf | sed "s/^user=.*/user=$VUT_ID/" > VUT.conf; unset VUT_ID
 ```
 
 Go to **Settings → Network → VPN → + → Import from file…** and select `VUT.conf`. On the first connect, enter your VUT PIN and the pre-shared key.
@@ -89,7 +89,7 @@ nmcli connection add type vpn con-name VUT vpn-type l2tp \
   vpn.data "gateway=vpn.vutbr.cz, user=$VUT_ID, user-auth-type=password, password-flags=0, machine-auth-type=psk, ipsec-enabled=yes, ipsec-psk-flags=0, refuse-eap=yes, refuse-pap=yes, refuse-chap=yes, refuse-mschap=yes" \
   vpn.secrets "password=$VUT_PIN, ipsec-psk=$VUT_PSK"
 
-unset VUT_PIN VUT_PSK
+unset VUT_ID VUT_PIN VUT_PSK
 ```
 
 Values containing a comma don't work with nmcli. In that case, use the GNOME GUI method.
