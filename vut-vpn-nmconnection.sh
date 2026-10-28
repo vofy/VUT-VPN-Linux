@@ -6,8 +6,9 @@
 #   - generates and installs the VUT connection
 # Tested on Fedora Workstation 44 with GNOME.
 #
-# Usage (as your normal user; sudo is called when installing):
-#   ./vut-vpn-nmconnection.sh
+# Usage (as your normal user; sudo is called when needed):
+#   ./vut-vpn-nmconnection.sh            # set up and install the connection
+#   ./vut-vpn-nmconnection.sh --remove   # remove the VUT connection
 #
 # Asks for VUT ID, VUT PIN and pre-shared key, then installs
 # /etc/NetworkManager/system-connections/VUT.nmconnection
@@ -20,6 +21,23 @@ set -euo pipefail
 CON_NAME="VUT"
 GATEWAY="vpn.vutbr.cz"
 TARGET_DIR="/etc/NetworkManager/system-connections"
+
+case "${1:-}" in
+  "") ;;
+  -r|--remove)
+    if nmcli -t -f NAME connection show | grep -qx "$CON_NAME"; then
+      sudo nmcli connection delete "$CON_NAME"
+    else
+      echo "Connection '$CON_NAME' not found."
+    fi
+    sudo rm -f "$TARGET_DIR/$CON_NAME.nmconnection"
+    sudo nmcli connection reload
+    echo "Removed. Installed packages, /etc/ipsec.conf and kernel module settings were left unchanged."
+    exit 0
+    ;;
+  -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+  *) echo "Unknown option: $1 (use --help)" >&2; exit 1 ;;
+esac
 
 # Escape a value for a GKeyFile (backslash and leading/trailing spaces).
 kf_escape() {
@@ -114,12 +132,12 @@ chmod 600 "$TMP"
   echo "user=$(kf_escape "$VUT_LOGIN")"
   echo "password-flags=0"
   echo "machine-auth-type=psk"
-  echo "ipsec-enabled=true"
+  echo "ipsec-enabled=yes"
   echo "ipsec-psk-flags=0"
-  echo "refuse-eap=true"
-  echo "refuse-pap=true"
-  echo "refuse-chap=true"
-  echo "refuse-mschap=true"
+  echo "refuse-eap=yes"
+  echo "refuse-pap=yes"
+  echo "refuse-chap=yes"
+  echo "refuse-mschap=yes"
   echo
   echo "[vpn-secrets]"
   echo "ipsec-psk=$(kf_escape "$VUT_PSK")"
