@@ -130,7 +130,6 @@ sudo nmcli connection add type vpn con-name "$CON_NAME" vpn-type l2tp \
   vpn.data "gateway=$GATEWAY, user=$VUT_LOGIN, user-auth-type=password, password-flags=0, machine-auth-type=psk, ipsec-enabled=yes, ipsec-psk-flags=0, refuse-eap=yes, refuse-pap=yes, refuse-chap=yes, refuse-mschap=yes" \
   vpn.secrets "password=$VUT_PIN, ipsec-psk=$VUT_PSK" >/dev/null
 
-unset VUT_PIN VUT_PSK
 echo "Connection '$CON_NAME' created."
 echo "Connect with: nmcli connection up $CON_NAME  (or from GNOME quick settings)"
 }
